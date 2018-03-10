@@ -1,19 +1,30 @@
 # DOCKER-VERSION 1.3.1
 # VERSION 0.1
-FROM debian:jessie
+FROM debian:stretch
 MAINTAINER Maximilian Güntner <maximilian.guentner@gmail.com>
 
-ENV OSM_CARTO_VERSION 2.24.0
+ENV OSM_CARTO_VERSION 4.8.0
 ENV OSM_BRIGHT_VERSION master
 ENV MOD_TILE_VERSION master
 ENV PARALLEL_BUILD 4
 
-RUN touch /etc/inittab
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q autoconf libtool libmapnik-dev apache2-dev curl unzip gdal-bin mapnik-utils node-carto node-millstone apache2 wget runit sudo
+ADD etc /etc
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q libgdal-dev autoconf libtool libmapnik-dev apache2-dev curl unzip gdal-bin mapnik-utils apache2 wget runit sudo
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates gnupg2
+RUN curl -L https://deb.nodesource.com/setup_8.x | bash -
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs build-essential gyp
+RUN npm install -g --unsafe carto@0.9.5 millstone
 
 RUN cd /tmp && wget https://github.com/gravitystorm/openstreetmap-carto/archive/v$OSM_CARTO_VERSION.tar.gz && tar -xzf v$OSM_CARTO_VERSION.tar.gz
 RUN mkdir /usr/share/mapnik && mv /tmp/openstreetmap-carto-$OSM_CARTO_VERSION /usr/share/mapnik/
-RUN cd /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/ && ./get-shapefiles.sh && cp project.mml project.mml.orig
+RUN cd /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/ && scripts/get-shapefiles.py && cp project.mml project.mml.orig
+RUN cd /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/data && \
+    mkdir -p ne_10m_populated_places && \
+    cd ne_10m_populated_places && \
+    wget http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_populated_places.zip && \
+    unzip ne_10m_populated_places.zip && \
+    rm ne_10m_populated_places.zip && \
+    shapeindex ne_10m_populated_places.shp
 # Delete zip files
 RUN find /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/data \( -type f -iname "*.zip" -o -iname "*.tgz" \) -delete
 
