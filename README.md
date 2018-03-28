@@ -1,31 +1,38 @@
 # docker-renderd-osm
 
-A basic image for rendering/serving tiles using OpenStreetMap data from an external
-PostgreSQL instance.
+A basic image for rendering/serving tiles using OpenStreetMap data from an external PostgreSQL instance.
 
 ## Build instructions
 
 Build using
 
-    # docker build -t mguentner/renderd-osm github.com/mguentner/docker-renderd-osm.git
+    docker build -t vitalif/renderd-osm github.com/vitalif/docker-renderd-osm.git
 
 ## Running
 
-This container is designed to work together with
-[openfirmware/docker-postgres-osm](https://registry.hub.docker.com/u/openfirmware/postgres-osm/).
-This document assumes that OpenStreetMap data has already been imported.
-If not build/pull [openfirmware/docker-osm2pgsql](https://registry.hub.docker.com/u/openfirmware/osm2pgsql/) and follow the instructions.
+This container is designed to work with an PostgreSQL instance
+with PostGIS and osm2pgsql loaded database (for example,
+[openfirmware/docker-postgres-osm](https://registry.hub.docker.com/u/openfirmware/postgres-osm/) +
+[openfirmware/docker-osm2pgsql](https://registry.hub.docker.com/u/openfirmware/osm2pgsql/)).
 
-First, start the already configured PostgreSQL container:
+To run this container with local PostgreSQL (not docker-packaged):
 
-    # docker start postgres-osm
+    docker run --name renderd -it -d -p 8096:80 \
+        -v /var/run/postgresql:/var/run/postgresql \
+        --env PG_ENV_OSM_USER=<user> \
+        --env PG_ENV_OSM_DB=<database> \
+        --env PG_ENV_OSM_PASSWORD=<password> vitalif/renderd-osm
 
-Now, start the renderd container and link them together:
+To run with postgresql from another docker container:
 
-    # docker run -i -t -p 8080:80 --link postgres-osm:pg  mguentner/renderd-osm:latest
+    docker run --name renderd -it -d -p 8096:80 \
+        --link postgres-osm:pg \
+        --env PG_ENV_OSM_USER=<user> \
+        --env PG_ENV_OSM_DB=<database> \
+        --env PG_ENV_OSM_PASSWORD=<password> vitalif/renderd-osm
 
 Once the container is up you should be able to see a small map of the
-world once you point your browser to [http://127.0.0.1:8080/osm/0/0/0.png](http://127.0.0.1:8080/osm/0/0/0.png)
+world once you point your browser to [http://127.0.0.1:8096/osm/0/0/0.png](http://127.0.0.1:8096/osm/0/0/0.png)
 
 ## Available Styles
 

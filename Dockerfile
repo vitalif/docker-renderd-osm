@@ -8,9 +8,11 @@ ENV OSM_BRIGHT_VERSION master
 ENV MOD_TILE_VERSION master
 ENV PARALLEL_BUILD 4
 
+# ca-certificates & gnupg2 needed to pull nodejs from nodesource repo
 ADD etc /etc
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q libgdal-dev autoconf libtool libmapnik-dev apache2-dev curl unzip gdal-bin mapnik-utils apache2 wget runit sudo
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates gnupg2
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+    less wget sudo curl unzip gdal-bin mapnik-utils apache2 runit autoconf libtool libmapnik-dev apache2-dev libgdal-dev \
+    fonts-noto-hinted ca-certificates gnupg2
 RUN curl -L https://deb.nodesource.com/setup_8.x | bash -
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs build-essential gyp
 RUN npm install -g --unsafe carto@0.9.5 millstone
