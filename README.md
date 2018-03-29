@@ -31,6 +31,8 @@ To run with postgresql from another docker container:
         --env PG_ENV_OSM_DB=<database> \
         --env PG_ENV_OSM_PASSWORD=<password> vitalif/renderd-osm
 
+Also you may override host and port with PG_ENV_OSM_HOST and PG_ENV_OSM_PORT.
+
 Once the container is up you should be able to see a small map of the
 world once you point your browser to [http://127.0.0.1:8096/osm/0/0/0.png](http://127.0.0.1:8096/osm/0/0/0.png)
 
