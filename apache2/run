@@ -1,3 +1,19 @@
 #!/bin/bash
 source /etc/apache2/envvars
+cat >/etc/apache2/ports.conf <<EOF
+Listen ${RENDERD_LISTEN_ADDR:-*:80}
+EOF
+cat >/etc/apache2/sites-enabled/000-default.conf <<EOF
+<VirtualHost ${RENDERD_LISTEN_ADDR:-*:80}>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+
+    LoadTileConfigFile /usr/local/etc/renderd.conf
+    ModTileRenderdSocketName /var/run/renderd/renderd.sock
+    ModTileRequestTimeout 0
+    ModTileMissingRequestTimeout 1800
+</VirtualHost>
+EOF
 exec /usr/sbin/apache2ctl -DFOREGROUND

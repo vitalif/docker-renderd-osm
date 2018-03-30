@@ -12,11 +12,11 @@ sed -i -e "s/{{OSM_BRIGHT_XML_DIR}}/\/usr\/share\/mapnik\/osm-bright-$OSM_BRIGHT
 # osm-carto setup
 cd /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/
 cp project.mml.orig project.mml
-sed -i "s/\"dbname\": \"gis\"/\"host\": \"$PG_ENV_OSM_HOST\",\n \
-\"port\": \"$PG_ENV_OSM_PORT\",\n \
-\"user\": \"$PG_ENV_OSM_USER\",\n \
-\"password\": \"$PG_ENV_OSM_PASSWORD\",\n \
-\"dbname\":\"$PG_ENV_OSM_DB\"/" project.mml
+sed -i "s/    dbname: \"gis\"/    host: \"$PG_ENV_OSM_HOST\"\n\
+    port: \"$PG_ENV_OSM_PORT\"\n\
+    user: \"$PG_ENV_OSM_USER\"\n\
+    password: \"$PG_ENV_OSM_PASSWORD\"\n\
+    dbname: \"$PG_ENV_OSM_DB\"/" project.mml
 carto project.mml > style.xml
 
 # osm-bright setup
