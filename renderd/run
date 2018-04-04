@@ -16,6 +16,8 @@ sed -i "s/    dbname: \"gis\"/    host: \"$PG_ENV_OSM_HOST\"\n\
     port: \"$PG_ENV_OSM_PORT\"\n\
     user: \"$PG_ENV_OSM_USER\"\n\
     password: \"$PG_ENV_OSM_PASSWORD\"\n\
+    asynchronous_request: true\n\
+    max_async_connection: 2\n\
     dbname: \"$PG_ENV_OSM_DB\"/" project.mml
 carto project.mml > style.xml
 
@@ -36,10 +38,12 @@ cat >fix-mml.pl <<EOF
 #!/usr/bin/perl -p
 
 s/"srs": null,//;
+s/"dbname": "$PG_ENV_OSM_DB",/"dbname": "$PG_ENV_OSM_DB", "asynchronous_request": true, "max_async_connection": 2,/;
 s/name, z_order \\\n  FROM planet_osm_point \\\n  WHERE railway = 'station'\\\n  ORDER BY z_order NULLS LAST/name FROM planet_osm_point WHERE railway = 'station'/;
 s/z_order, population\\\n  FROM planet_osm_point/(tags->'population') population FROM planet_osm_point/;
 EOF
 perl -p fix-mml.pl < project.mml > project.local.mml
 carto project.local.mml > style.xml
 
+chown -R www-data:www-data /var/lib/mod_tile
 exec sudo -u www-data LD_LIBRARY_PATH=/usr/local/lib/ /usr/local/bin/renderd -f --config /usr/local/etc/renderd.conf
