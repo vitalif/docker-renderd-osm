@@ -1,0 +1,14 @@
+--- openstreetmap-carto.lua.orig	2018-04-04 15:59:52.904383753 +0300
++++ openstreetmap-carto.lua	2018-04-04 15:59:18.364384188 +0300
+@@ -273,6 +273,11 @@ function filter_tags_generic(tags)
+         return 1, {}
+     end
+ 
++    -- Remove religion
++    if tags['religion'] ~= nil then
++        return 1, {}
++    end
++
+     -- Delete tags listed in delete_tags
+     for _, d in ipairs(delete_tags) do
+         tags[d] = nil

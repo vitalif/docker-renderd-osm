@@ -12,7 +12,8 @@ ENV PARALLEL_BUILD 4
 ADD etc /etc
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
     less wget sudo curl unzip gdal-bin mapnik-utils apache2 runit autoconf libtool libmapnik-dev apache2-dev libgdal-dev \
-    fonts-noto-cjk fonts-noto-hinted fonts-noto-unhinted fonts-hanazono ttf-unifont ca-certificates gnupg2 && \
+    fonts-noto-cjk fonts-noto-hinted fonts-noto-unhinted fonts-hanazono ttf-unifont ca-certificates gnupg2 \
+    osm2pgsql libdbd-pg-perl && \
     (curl -L https://deb.nodesource.com/setup_8.x | bash -) && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs build-essential gyp && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -54,6 +55,10 @@ RUN cd /tmp && \
 RUN mkdir -p /var/lib/mod_tile && chown www-data:www-data /var/lib/mod_tile
 RUN mkdir -p /var/run/renderd  && chown www-data:www-data /var/run/renderd
 
+COPY ./openstreetmap-carto.lua.diff /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION/
+RUN cd /usr/share/mapnik/openstreetmap-carto-$OSM_CARTO_VERSION && \
+    patch openstreetmap-carto.lua < openstreetmap-carto.lua.diff
+
 RUN mkdir -p /etc/service/renderd && mkdir -p /etc/service/apache2
 COPY ./apache2/run /etc/service/apache2/run
 COPY ./renderd/run /etc/service/renderd/run
@@ -67,6 +72,8 @@ COPY ./renderd/renderd.conf /usr/local/etc/renderd.conf
 
 COPY runit_bootstrap /usr/sbin/runit_bootstrap
 RUN chmod 755 /usr/sbin/runit_bootstrap
+
+COPY ./osm-loader.pl /osm-loader.pl
 
 EXPOSE 80
 ENTRYPOINT ["/usr/sbin/runit_bootstrap"]

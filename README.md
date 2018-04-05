@@ -2,6 +2,7 @@
 
 A basic image for rendering/serving tiles using OpenStreetMap data from an external PostgreSQL instance.
 
+
 ## Build instructions
 
 Build using
@@ -36,6 +37,10 @@ and listen address/port with RENDERD_LISTEN_ADDR (default is 0.0.0.0:80).
 
 Once the container is up you should be able to see a small map of the
 world once you point your browser to [http://127.0.0.1:8096/osm/0/0/0.png](http://127.0.0.1:8096/osm/0/0/0.png)
+
+## Loading and updating OSM data
+
+Use osm-loader.pl (Russia by now).
 
 ## Available Styles
 
