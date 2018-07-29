@@ -85,9 +85,9 @@ while ($cur+86400 < $now)
     my $fn = 'RU-'.POSIX::strftime("%y%m%d", localtime($cur)).'-'.POSIX::strftime("%y%m%d", localtime($next)).'.osc.gz';
     my $url = 'http://be.gis-lab.info/data/osm_dump/diff/RU/'.$fn;
     system("curl -C - -s -f '$url' -o $dir/$fn");
-    $cur = $next;
     if (-e "$dir/$fn")
     {
+        $cur = $next;
         push @$apply, $fn;
     }
     else
