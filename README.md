@@ -22,6 +22,7 @@ To run this container with local PostgreSQL (not docker-packaged):
         -v /var/run/postgresql:/var/run/postgresql \
         --env PG_ENV_OSM_USER=<user> \
         --env PG_ENV_OSM_DB=<database> \
+        --env PG_ENV_OSM_HOST=<db_host> \
         --env PG_ENV_OSM_PASSWORD=<password> vitalif/renderd-osm
 
 To run with postgresql from another docker container:
@@ -30,6 +31,7 @@ To run with postgresql from another docker container:
         --link postgres-osm:pg \
         --env PG_ENV_OSM_USER=<user> \
         --env PG_ENV_OSM_DB=<database> \
+        --env PG_ENV_OSM_HOST=<db_host> \
         --env PG_ENV_OSM_PASSWORD=<password> vitalif/renderd-osm
 
 Also you may override host and port with PG_ENV_OSM_HOST and PG_ENV_OSM_PORT,

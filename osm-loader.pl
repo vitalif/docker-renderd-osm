@@ -1,5 +1,6 @@
 #!/usr/bin/perl
-# Configuration in env: OSM_CACHE_DIR, OSM_CARTO_DIR + same Docker env vars
+# Configuration in env: OSM_CACHE_DIR, OSM_CARTO_DIR, URL_LATEST, URL_UPDATES,
+# plus PG_ENV_OSM_{DB,HOST,PORT,USER,PASSWORD} like in README for the render server itself
 
 use strict;
 use DBI;
@@ -7,8 +8,8 @@ use POSIX;
 
 my $dir = $ENV{OSM_CACHE_DIR} || '/var/lib/mod_tile/downloads';
 my $carto_dir = '/usr/share/mapnik/openstreetmap-carto-'.$ENV{OSM_CARTO_VERSION};
-my $url_latest = 'http://download.geofabrik.de/russia-latest.osm.pbf';
-my $url_updates = 'http://download.geofabrik.de/russia-updates';
+my $url_latest = $ENV{URL_LATEST} || 'http://download.geofabrik.de/russia-latest.osm.pbf';
+my $url_updates = $ENV{URL_UPDATES} || 'http://download.geofabrik.de/russia-updates';
 my $url_gislab_dump = 'http://be.gis-lab.info/data/osm_dump/dump/RU/RU-';
 my $url_gislab_diff = 'http://be.gis-lab.info/data/osm_dump/diff/RU/RU-';
 
