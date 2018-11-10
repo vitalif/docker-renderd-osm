@@ -10,8 +10,6 @@ my $dir = $ENV{OSM_CACHE_DIR} || '/var/lib/mod_tile/downloads';
 my $carto_dir = '/usr/share/mapnik/openstreetmap-carto-'.$ENV{OSM_CARTO_VERSION};
 my $url_latest = $ENV{URL_LATEST} || 'http://download.geofabrik.de/russia-latest.osm.pbf';
 my $url_updates = $ENV{URL_UPDATES} || 'http://download.geofabrik.de/russia-updates';
-my $url_gislab_dump = 'http://be.gis-lab.info/data/osm_dump/dump/RU/RU-';
-my $url_gislab_diff = 'http://be.gis-lab.info/data/osm_dump/diff/RU/RU-';
 
 -e $dir || mkdir($dir);
 chdir $dir or die "Failed to chdir $dir";
@@ -111,46 +109,6 @@ sub load_and_init
         close $fd;
     }
     $dbh->commit;
-}
-
-sub load_gislab_full
-{
-    my ($url_gislab_dump, $dir) = @_;
-    my $url = $url_gislab_dump.POSIX::strftime("%y%m%d", localtime(time-86400)).'.osm.pbf';
-    my ($fn) = $url =~ /(^\/)+$/so;
-    system("curl -s -C - -f '$url' -o $dir/$fn");
-    if (!-e "$dir/$fn")
-    {
-        die "Failed to download $url\n";
-    }
-    return "$dir/$fn";
-}
-
-sub load_gislab_deltas
-{
-    my ($version, $url_gislab_diff) = @_;
-    my $ymd = [ split /-/, $version ];
-    my $cur = POSIX::mktime(0, 0, 0, $ymd->[2]-0, $ymd->[1]-1, $ymd->[0]-1900);
-    my $now = time();
-    my $apply = [];
-    while ($cur+86400 < $now)
-    {
-        my $next = $cur+86400;
-        my $url = $url_gislab_diff.POSIX::strftime("%y%m%d", localtime($cur)).'-'.
-            POSIX::strftime("%y%m%d", localtime($next)).'.osc.gz';
-        my ($fn) = $url =~ m!/([^/]+)$!so;
-        system("curl -C - -s -f '$url' -o $dir/$fn");
-        if (-e "$dir/$fn")
-        {
-            $cur = $next;
-            push @$apply, $fn;
-        }
-        else
-        {
-            last;
-        }
-    }
-    return $apply;
 }
 
 sub load_geofabrik_deltas
