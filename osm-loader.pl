@@ -16,7 +16,7 @@ chdir $dir or die "Failed to chdir $dir";
 
 my $state = parse_geofabrik_state($url_updates, $dir);
 my $dbh = DBI->connect(
-    'dbi:Pg:dbname='.$ENV{PG_ENV_OSM_DB}.';host='.$ENV{PG_ENV_OSM_HOST}.';port='.$ENV{PG_ENV_OSM_PORT},
+    'dbi:Pg:dbname='.$ENV{PG_ENV_OSM_DB}.';host='.$ENV{PG_ENV_OSM_HOST}.';port='.($ENV{PG_ENV_OSM_PORT}||5432),
     $ENV{PG_ENV_OSM_USER}, $ENV{PG_ENV_OSM_PASSWORD}, {AutoCommit => 0, RaiseError => 1}
 );
 my ($version) = eval { $dbh->selectrow_array(
@@ -29,7 +29,7 @@ if (!$version)
         die "Current OSM version missing, run with OSM_INIT=1 environment variable to initialize\n";
     }
     $dbh->rollback;
-    my ($fn) = $url_latest =~ /(^\/)+$/so;
+    my ($fn) = $url_latest =~ /([^\/]+)$/so;
     $fn =~ s/^([^\.]+)/$1-$state->{timestamp}/;
     system("curl -s -C - -f '$url_latest' -o $dir/$fn");
     if (!-e "$dir/$fn")
@@ -48,7 +48,7 @@ exit;
 sub parse_geofabrik_state
 {
     my ($url_updates, $dir) = @_;
-    system("curl -s - -f '$url_updates/state.txt' -o $dir/state.txt");
+    system("curl -s -f '$url_updates/state.txt' -o $dir/state.txt");
     if (!-r "$dir/state.txt")
     {
         die "Error downloading $url_updates/state.txt";
@@ -61,16 +61,17 @@ sub parse_geofabrik_state
             local $/ = undef;
             $state = <FD>;
             close FD;
-            $state = { map { (split /\s*=\s*/, $_, 2) } grep { !/^\s+(#.*)?$/so } split /\n/, $state };
+            $state = { map { (split /\s*=\s*/, $_, 2) } grep { !/^\s*(#.*)?$/so && /=/so } split /\n/, $state };
             if (!$state->{timestamp} || !$state->{sequenceNumber})
             {
                 print "State file incorrect, should have timestamp=<ISO8601 date> and sequenceNumber=<integer>\n";
                 exit;
             }
             $state->{timestamp} =~ s/\\//g;
+            return $state;
         }
     }
-    return $state;
+    die "Error downloading $url_updates/state.txt";
 }
 
 sub load_and_init
