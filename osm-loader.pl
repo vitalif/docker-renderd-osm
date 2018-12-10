@@ -9,42 +9,53 @@
 # OSM_CARTO_VERSION - для режима osm2pgsql-carto - версия osm-carto. Файлы должны быть в /usr/share/mapnik/openstreetmap-carto-ВЕРСИЯ
 # URL_LATEST - URL последней версии .osm.pbf экспортного файла
 # URL_UPDATES - URL директории с обновлениями (должна содержать state.txt и дельты)
-# PG_ENV_OSM_DB - БД PostGIS
+# PG_ENV_OSM_DB - БД PostGIS. Если пустая - база обновляться не будет
 # PG_ENV_OSM_HOST - хост/сокет БД
 # PG_ENV_OSM_PORT - порт БД (по умолчанию 5432)
 # PG_ENV_OSM_USER - пользователь БД
 # PG_ENV_OSM_PASSWORD - пароль пользователя БД
 
 use strict;
-use DBI;
 use POSIX;
 
 my $dbh;
 my $dir = $ENV{OSM_CACHE_DIR} || '/var/lib/mod_tile/downloads';
-my $method = $ENV{OSM_METHOD} || 'osm2pgsql-carto';
 my $url_latest = $ENV{URL_LATEST} || 'http://download.geofabrik.de/russia-latest.osm.pbf';
 my $url_updates = $ENV{URL_UPDATES} || 'http://download.geofabrik.de/russia-updates';
 
-if (!$ENV{PG_ENV_OSM_DB})
+if (!$ENV{PG_ENV_OSM_DB} && !$ENV{OSM_UPDATE_FILE})
 {
-    fatal("Не задана БД OSM");
+    fatal("Не задана ни БД, ни файл для обновления");
 }
-info("Начато обновлением OSM базы данных: $ENV{PG_ENV_OSM_DB}");
-if ($method ne 'osm2pgsql-carto' && $method ne 'imposm3-all')
-{
-    fatal("Некорректный режим обновления: $method (поддерживаются только osm2pgsql-carto и imposm3-all)");
-}
+
 -e $dir || mkdir($dir);
 chdir $dir or fatal("Директория $dir не существует");
-eval { run_update() };
+eval
+{
+    if ($ENV{PG_ENV_OSM_DB})
+    {
+        run_update_db();
+    }
+    if ($ENV{OSM_UPDATE_FILE})
+    {
+        run_update_file($url_latest, $url_updates, $dir);
+    }
+};
 if ($@)
 {
     fatal("Ошибка кода: $@");
 }
 exit(0);
 
-sub run_update
+sub run_update_db
 {
+    require DBI;
+    my $method = $ENV{OSM_METHOD} || 'osm2pgsql-carto';
+    if ($method ne 'osm2pgsql-carto' && $method ne 'imposm3-all')
+    {
+        fatal("Некорректный режим обновления: $method (возможные значения: none, osm2pgsql-carto, imposm3-all)");
+    }
+    info("Начато обновлением OSM базы данных: $ENV{PG_ENV_OSM_DB}");
     my $state = parse_geofabrik_state($url_updates, $dir);
     my $dbh = DBI->connect(
         'dbi:Pg:dbname='.$ENV{PG_ENV_OSM_DB}.';host='.$ENV{PG_ENV_OSM_HOST}.';port='.($ENV{PG_ENV_OSM_PORT}||5432),
@@ -109,10 +120,6 @@ sub run_update
             system("cat $dir/expire.list | render_expired --map=osm_carto --touch-from=11");
             system("cat $dir/expire.list | render_expired --map=osm_bright --touch-from=11");
         }
-    }
-    if ($ENV{OSM_UPDATE_FILE})
-    {
-        apply_deltas_file($url_latest, $url_updates, $dir);
     }
 }
 
@@ -300,7 +307,7 @@ sub apply_deltas_imposm3
     }
 }
 
-sub apply_deltas_file
+sub run_update_file
 {
     my ($url_latest, $url_updates, $dir) = @_;
     my ($full_fn) = $url_latest =~ /([^\/]+)$/so;
