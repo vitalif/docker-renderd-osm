@@ -67,19 +67,22 @@ sub run_update
         # качаем дамп
         my ($fn) = $url_latest =~ /([^\/]+)$/so;
         info("Скачивается файл $url_latest");
-        system("curl -s -C - -f '$url_latest' -o $dir/$fn");
-        if ($? || !-e "$dir/$fn")
+        if (!-e "$dir/$fn.state.txt" || !-e "$dir/$fn")
         {
-            fatal("Не удалось скачать файл $url_latest");
+            system("curl -s -C - -f '$url_latest' -o $dir/$fn");
+            if ($? || !-e "$dir/$fn")
+            {
+                fatal("Не удалось скачать файл $url_latest");
+            }
+            system("cp $dir/state.txt $dir/$fn.state.txt");
         }
-        system("cp $dir/state.txt $dir/$fn.state.txt");
         if ($method eq 'osm2pgsql-carto')
         {
-            init_osm2pgsql($dbh, $state->{timestamp} . ' ' . $state->{sequenceNumber}, "$dir/$fn");
+            init_osm2pgsql($dbh, "$dir/$fn");
         }
         else
         {
-            init_imposm3($dbh, $state->{timestamp} . ' ' . $state->{sequenceNumber}, "$dir/$fn");
+            init_imposm3($dbh, "$dir/$fn");
         }
         $dbh->commit;
         info("База данных OSM $ENV{PG_ENV_OSM_DB} инициализирована версией: ".$state->{timestamp});
@@ -223,10 +226,16 @@ sub init_osm2pgsql
 sub init_imposm3
 {
     my ($dbh, $path) = @_;
+    $dbh->do("SET SEARCH_PATH TO import, public");
+    $dbh->do("DROP TABLE IF EXISTS osm_linestring");
+    $dbh->do("DROP TABLE IF EXISTS osm_point");
+    $dbh->do("DROP TABLE IF EXISTS osm_polygon");
+    $dbh->do("DROP TABLE IF EXISTS osm_relation");
+    $dbh->do("DROP TABLE IF EXISTS osm_relation_member");
     my $cmd =
         "imposm3 import -connection 'postgis://".$ENV{PG_ENV_OSM_USER}.":".$ENV{PG_ENV_OSM_PASSWORD}.
         "@".$ENV{PG_ENV_OSM_HOST}.(($ENV{PG_ENV_OSM_PORT}||5432) != 5432 ? ":".$ENV{PG_ENV_OSM_PORT} : "").
-        "/".$ENV{PG_ENV_OSM_DB}."' -cachedir '".$ENV{OSM_CACHE_DIR}."/imposm3-cache' -mapping '/home/imposm3-all.yml' -srid 4326 -diff".
+        "/".$ENV{PG_ENV_OSM_DB}."' -overwritecache -cachedir '".$ENV{OSM_CACHE_DIR}."/imposm3-cache' -mapping '/home/imposm3-all.yml' -srid 4326 -diff".
         " -read '$path' -write";
     system($cmd);
     if ($?)
@@ -251,7 +260,12 @@ CREATE INDEX IF NOT EXISTS osm_relation_text    ON osm_relation     USING gin (t
 
 sub apply_deltas_osm2pgsql
 {
-    my ($apply, $carto_dir) = @_;
+    my ($apply) = @_;
+    my $carto_dir = '/usr/share/mapnik/openstreetmap-carto-'.$ENV{OSM_CARTO_VERSION};
+    if (!$ENV{OSM_CARTO_VERSION})
+    {
+        fatal("Не задан путь к osm-carto");
+    }
     if (@$apply)
     {
         my $cmd =
@@ -271,11 +285,6 @@ sub apply_deltas_osm2pgsql
 sub apply_deltas_imposm3
 {
     my ($apply) = @_;
-    my $carto_dir = '/usr/share/mapnik/openstreetmap-carto-'.$ENV{OSM_CARTO_VERSION};
-    if (!$ENV{OSM_CARTO_VERSION})
-    {
-        fatal("Не задан путь к osm-carto");
-    }
     if (@$apply)
     {
         my $cmd =
